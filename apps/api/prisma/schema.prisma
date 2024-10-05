@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TokenType {
+  PASSWORD_RECOVER
+}
+
+enum AccountProvider {
+  GITHUB
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  BILLING
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String?
+  email     String   @unique
+  password  String?
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tokens             Token[]
+  accounts           Account[]
+  invites            Invite[]
+  member_on          Member[]
+  owns_organizations Organization[]
+  owns_projects      Project[]
+
+  @@map("users")
+}
+
+model Token {
+  id        String    @id @default(uuid())
+  type      TokenType
+  createdAt DateTime  @default(now()) @map("created_at")
+  userId    String    @map("user_id")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("tokens")
+}
+
+model Invite {
+  id             String   @id @default(uuid())
+  email          String
+  role           Role
+  createdAt      DateTime @default(now()) @map("created_at")
+  userId         String   @map("user_id")
+  organizationId String?  @map("organization_id")
+
+  organinzation Organization? @relation(fields: [organizationId], references: [id])
+  author        User?         @relation(fields: [userId], references: [id])
+
+  @@unique([email, organizationId])
+  @@index([email])
+  @@map("invites")
+}
+
+model Account {
+  id                String          @id @default(uuid())
+  provider          AccountProvider
+  providerAccountId String          @map("provider_account_id")
+  userId            String          @map("user_id")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Member {
+  id             String @id @default(uuid())
+  role           Role   @default(MEMBER)
+  organizationId String @map("organization_id")
+  userId         String @map("user_id")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@map("members")
+}
+
+model Organization {
+  id                        String   @id @default(uuid())
+  name                      String
+  slug                      String
+  domain                    String?  @unique
+  shouldAttachUsersByDomain Boolean  @default(false) @map("should_attach_users_by_domain")
+  avartarUrl                String?  @map("avatar_url")
+  userId                    String   @map("user_id")
+  owner                     User     @relation(fields: [userId], references: [id])
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  invites  Invite[]
+  members  Member[]
+  projects Project[]
+
+  @@map("organizations")
+}
+
+model Project {
+  id             String   @id @default(uuid())
+  name           String
+  description    String
+  slug           String
+  avartarUrl     String?  @map("avatar_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  userId         String   @map("user_id")
+  organizationId String   @map("organization_id")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  owner        User         @relation(fields: [userId], references: [id])
+}

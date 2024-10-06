@@ -26,6 +26,7 @@ export async function authenticateWithPassword(app: FastifyInstance) {
     },
     async (request, reply) => {
       const { email, password } = request.body
+
       const userFromEmail = await prisma.user.findUnique({
         where: {
           email,
@@ -43,6 +44,7 @@ export async function authenticateWithPassword(app: FastifyInstance) {
       }
 
       const isPasswordValid = await compare(password, userFromEmail.password)
+
       if (!isPasswordValid) {
         throw new BadRequestError('Invalid credentials.')
       }

@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 import { hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod'
-import { ZodError } from 'zod'
 
 import { BadRequestError } from './routes/_errors/bad-request-error'
 import { UnauthorizedError } from './routes/_errors/unauthorized-error'
@@ -12,14 +11,7 @@ interface ZodIssue {
 
 type FastfyErrorHandler = FastifyInstance['errorHandler']
 
-export const errorHandler: FastfyErrorHandler = (error, reques, reply) => {
-  if (error instanceof ZodError) {
-    return reply.status(400).send({
-      message: 'Validation error',
-      errors: error.flatten().fieldErrors,
-    })
-  }
-
+export const errorHandler: FastfyErrorHandler = (error, _, reply) => {
   if (hasZodFastifySchemaValidationErrors(error)) {
     return reply.status(400).send({
       message: 'Validation error',

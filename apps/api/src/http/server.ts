@@ -12,7 +12,8 @@ import {
 
 import { errorHandler } from '@/http/error-handler'
 
-import { authenticateWithPassword } from './routes/auth/autenticate-with-password'
+import { authenticateWithGithub } from './routes/auth/authenticate-with-github'
+import { authenticateWithPassword } from './routes/auth/authenticate-with-password'
 import { createAccount } from './routes/auth/create-account'
 import { getProfile } from './routes/auth/get-profile'
 import { requestPasswordRecover } from './routes/auth/request-password-recover'
@@ -50,6 +51,7 @@ app.register(authenticateWithPassword)
 app.register(getProfile)
 app.register(requestPasswordRecover)
 app.register(resetPassword)
+app.register(authenticateWithGithub)
 
 app.listen({ port: 3333 }).then(() => {
   console.log('Server listening on port 3333')

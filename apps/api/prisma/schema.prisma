@@ -75,7 +75,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id])
 
-  @@unique([provider, providerAccountId])
+  @@unique([provider, userId])
   @@map("accounts")
 }
 

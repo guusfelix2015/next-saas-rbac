@@ -14,7 +14,7 @@ export async function getMembership(app: FastifyInstance) {
       '/organizations/:slug/membership',
       {
         schema: {
-          tags: ['Organization'],
+          tags: ['Organizations'],
           summary: 'Get membership of on organization',
           security: [{ bearerAuth: [] }],
           params: z.object({
@@ -35,7 +35,7 @@ export async function getMembership(app: FastifyInstance) {
       async (request) => {
         const { slug } = request.params
 
-        const { membership } = await request.getUserMemberShip(slug)
+        const { membership } = await request.getUserMembership(slug)
 
         return {
           membership: {

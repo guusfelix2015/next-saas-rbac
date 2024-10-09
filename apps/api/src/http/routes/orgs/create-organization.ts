@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
-import { createslug } from '@/utils/create0slug'
+import { createslug } from '@/utils/createSlug'
 
 import { BadRequestError } from '../_errors/bad-request-error'
 

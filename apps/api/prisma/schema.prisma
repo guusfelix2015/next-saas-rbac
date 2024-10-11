@@ -7,28 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum TokenType {
-  PASSWORD_RECOVER
-}
-
-enum AccountProvider {
-  GITHUB
-}
-
-enum Role {
-  ADMIN
-  MEMBER
-  BILLING
-}
-
 model User {
-  id        String   @id @default(uuid())
-  name      String?
-  email     String   @unique
-  password  String?
-  avatarUrl String?  @map("avatar_url")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  name         String?
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   tokens             Token[]
   accounts           Account[]
@@ -40,53 +26,69 @@ model User {
   @@map("users")
 }
 
+enum TokenType {
+  PASSWORD_RECOVER
+}
+
 model Token {
   id        String    @id @default(uuid())
   type      TokenType
   createdAt DateTime  @default(now()) @map("created_at")
-  userId    String    @map("user_id")
 
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
 
   @@map("tokens")
 }
 
-model Invite {
-  id             String   @id @default(uuid())
-  email          String
-  role           Role
-  createdAt      DateTime @default(now()) @map("created_at")
-  userId         String   @map("user_id")
-  organizationId String?  @map("organization_id")
+enum AccountProvider {
+  GITHUB
+}
 
-  organinzation Organization? @relation(fields: [organizationId], references: [id])
-  author        User?         @relation(fields: [userId], references: [id])
+model Account {
+  id                String          @id @default(uuid())
+  provider          AccountProvider
+  providerAccountId String          @unique @map("provider_account_id")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  @@unique([provider, userId])
+  @@map("accounts")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  BILLING
+}
+
+model Invite {
+  id        String   @id @default(uuid())
+  email     String
+  role      Role
+  createdAt DateTime @default(now()) @map("created_at")
+
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId String? @map("author_id")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String       @map("organization_id")
 
   @@unique([email, organizationId])
   @@index([email])
   @@map("invites")
 }
 
-model Account {
-  id                String          @id @default(uuid())
-  provider          AccountProvider
-  providerAccountId String          @map("provider_account_id")
-  userId            String          @map("user_id")
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([provider, userId])
-  @@map("accounts")
-}
-
 model Member {
-  id             String @id @default(uuid())
-  role           Role   @default(MEMBER)
-  organizationId String @map("organization_id")
-  userId         String @map("user_id")
+  id   String @id @default(uuid())
+  role Role   @default(MEMBER)
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  user         User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String       @map("organization_id")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
 
   @@unique([organizationId, userId])
   @@map("members")
@@ -95,14 +97,15 @@ model Member {
 model Organization {
   id                        String   @id @default(uuid())
   name                      String
-  slug                      String
+  slug                      String   @unique
   domain                    String?  @unique
   shouldAttachUsersByDomain Boolean  @default(false) @map("should_attach_users_by_domain")
-  avatarUrl                String?  @map("avatar_url")
-  ownerId                    String   @map("owner_id")
-  owner                     User     @relation(fields: [ownerId], references: [id])
+  avatarUrl                 String?  @map("avatar_url")
   createdAt                 DateTime @default(now()) @map("created_at")
   updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  owner   User   @relation(fields: [ownerId], references: [id])
+  ownerId String @map("owner_id")
 
   invites  Invite[]
   members  Member[]
@@ -112,16 +115,19 @@ model Organization {
 }
 
 model Project {
-  id             String   @id @default(uuid())
-  name           String
-  description    String
-  slug           String
-  avatarUrl     String?  @map("avatar_url")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  ownerId        String   @map("owner_id")
-  organizationId String   @map("organization_id")
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  slug        String   @unique
+  avatarUrl   String?  @map("avatar_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  owner        User         @relation(fields: [ownerId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String       @map("organization_id")
+
+  owner   User   @relation(fields: [ownerId], references: [id])
+  ownerId String @map("owner_id")
+
+  @@map("projects")
 }

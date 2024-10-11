@@ -5,58 +5,45 @@ import { z } from 'zod'
 import { auth } from '@/http/middlewares/auth'
 import { UnauthorizedError } from '@/http/routes/_errors/unauthorized-error'
 import { prisma } from '@/lib/prisma'
-import { createslug } from '@/utils/createSlug'
 import { getUserPermissions } from '@/utils/get-user-permissions'
-
-export async function createProject(app: FastifyInstance) {
+export async function removeMember(app: FastifyInstance) {
   app
     .withTypeProvider<ZodTypeProvider>()
     .register(auth)
-    .post(
-      '/organizations/:slug/projects',
+    .delete(
+      '/organizations/:slug/members/:memberId',
       {
         schema: {
-          tags: ['Projects'],
-          summary: 'Create a new project',
+          tags: ['Members'],
+          summary: 'Remove a member from the organization',
           security: [{ bearerAuth: [] }],
-          body: z.object({
-            name: z.string(),
-            description: z.string(),
-          }),
           params: z.object({
             slug: z.string(),
+            memberId: z.string().uuid(),
           }),
           response: {
-            201: z.object({
-              projectId: z.string().uuid(),
-            }),
+            204: z.null(),
           },
         },
       },
       async (request, reply) => {
-        const { slug } = request.params
+        const { slug, memberId } = request.params
         const userId = await request.getCurrentUserId()
         const { organization, membership } =
           await request.getUserMembership(slug)
         const { cannot } = getUserPermissions(userId, membership.role)
-        if (cannot('create', 'Project')) {
+        if (cannot('delete', 'User')) {
           throw new UnauthorizedError(
-            `You're not allowed to create new projects.`,
+            `You're not allowed to remove this member from organization.`,
           )
         }
-        const { name, description } = request.body
-        const project = await prisma.project.create({
-          data: {
-            name,
-            slug: createslug(name),
-            description,
+        await prisma.member.delete({
+          where: {
+            id: memberId,
             organizationId: organization.id,
-            ownerId: userId,
           },
         })
-        return reply.status(201).send({
-          projectId: project.id,
-        })
+        return reply.status(204).send()
       },
     )
 }
